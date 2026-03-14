@@ -1,7 +1,12 @@
 import random
 import time
 import gymnasium
+import shutil
+import argparse
 import coverage_gridworld  # must be imported, even though it's not directly referenced
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.callbacks import EvalCallback
 
 
 def human_player():
@@ -88,6 +93,62 @@ maps = [
         [0, 2, 0, 2, 0, 0, 2, 0, 2, 0]
     ]
 ]
+
+# ---- TRAIN ----- #
+
+def train(name, resume=False):
+    
+    # create training environment
+    train_env = make_vec_env(
+        "standard",
+        n_envs=1,
+        env_kwargs={
+            "predefined_map_list": maps
+        }
+    )
+
+    # create evaluation environment
+    eval_env = make_vec_env(
+        "just_go",
+        n_envs=1,
+        env_kwargs={"render_mode": None}
+    )
+
+    # if resuming training, load the model
+    if resume:
+        model = PPO.load(f"./models/{name}/final", env=train_env)
+        model.tensorboard_log = f"./logs/{name}"
+        print(f"Resume Training")
+    # create PPO agent
+    else:
+        model = PPO("MlpPolicy", train_env, verbose=1, tensorboard_log=f"./logs/{name}")
+
+
+
+    # callback every eval_freq timesteps
+    # evluates the agent for 5 episodes and saves the best model found so far
+    eval_callback = EvalCallback(
+        eval_env,
+        best_model_save_path=f"./models/{name}",
+        log_path=f"./logs/{name}",
+        eval_freq=50000,
+        n_eval_episodes=5,
+        deterministic=True,
+        verbose=1,
+    )
+
+    # the training loop 
+    model.learn(total_timesteps=1000000, callback=eval_callback)
+    # save final model
+    model.save(f"./models/{name}/final")
+
+    print("Training Complete")
+
+    train_env.close()
+    eval_env.close()
+
+
+# -------------------- #
 
 env = gymnasium.make("sneaky_enemies", render_mode="human", predefined_map_list=None, activate_game_status=True)
 num_episodes = 5
