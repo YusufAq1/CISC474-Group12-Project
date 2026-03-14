@@ -5,27 +5,32 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
+_COLORS = np.array([
+    [0,   0,   0  ],  # 0 = unexplored (BLACK)
+    [255, 255, 255],  # 1 = explored (WHITE)
+    [101, 67,  33 ],  # 2 = wall (BROWN)
+    [160, 161, 161],  # 3 = agent (GREY)
+    [31,  198, 0  ],  # 4 = enemy (GREEN)
+    [255, 0,   0  ],  # 5 = unexplored under surveillance (RED)
+    [255, 127, 127],  # 6 = explored under surveillance (LIGHT_RED)
+], dtype=np.uint8)
+
+def _encode_grid(grid: np.ndarray) -> np.ndarray:
+
+    flat = grid.reshape(100, 3)
+    result = np.zeros(100, dtype=np.int32)
+    for color_id, color in enumerate(_COLORS):
+        result[np.all(flat == color, axis=1)] = color_id
+    return result
 
 def observation_space(env: gym.Env) -> gym.spaces.Space:
-    """
-    Observation space from Gymnasium (https://gymnasium.farama.org/api/spaces/)
-    """
-    # The grid has (10, 10, 3) shape and can store values from 0 to 255 (uint8). To use the whole grid as the
-    # observation space, we can consider a MultiDiscrete space with values in the range [0, 256).
-    cell_values = env.grid + 256
 
-    # if MultiDiscrete is used, it's important to flatten() numpy arrays!
-    return gym.spaces.MultiDiscrete(cell_values.flatten())
+    return gym.spaces.MultiDiscrete(np.full(100, 7, dtype=np.int32))
 
 
 def observation(grid: np.ndarray):
-    """
-    Function that returns the observation for the current state of the environment.
-    """
-    # If the observation returned is not the same shape as the observation_space, an error will occur!
-    # Make sure to make changes to both functions accordingly.
-
-    return grid.flatten()
+    
+    return _encode_grid(grid)
 
 
 def reward(info: dict) -> float:
@@ -46,16 +51,14 @@ def reward(info: dict) -> float:
     - new_cell_covered (bool): if a cell previously uncovered was covered on this step
     - game_over (bool) : if the game was terminated because the player was seen by an enemy or not
     """
-    enemies = info["enemies"]
-    agent_pos = info["agent_pos"]
-    total_covered_cells = info["total_covered_cells"]
-    cells_remaining = info["cells_remaining"]
-    coverable_cells = info["coverable_cells"]
-    steps_remaining = info["steps_remaining"]
-    new_cell_covered = info["new_cell_covered"]
-    game_over = info["game_over"]
-
-    # IMPORTANT: You may design a reward function that uses just some of these values. Experiment with different
-    # rewards and find out what works best for the algorithm you chose given the observation space you are using
-
-    return 0
+    r = -0.1  
+    if info["game_over"]:
+        r -= 100
+    elif info["cells_remaining"] == 0:
+        r += 200
+    elif info["new_cell_covered"]:
+        r += 10
+    else:
+        r -= 0.3  
+    return r
+    

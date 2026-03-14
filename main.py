@@ -147,21 +147,60 @@ def train(name, resume=False):
     train_env.close()
     eval_env.close()
 
+# ----- Evaluation ------- #
+
+def evaluate(name):
+
+    # load the best model found during training
+    try:
+        model = PPO.load(f"./models/{name}/best_model")
+    except FileNotFoundError:
+        model = PPO.load(name)
+
+    # Test agent on the following 3 envs 
+    test_envs = [
+        ("just_go", {"render_mode": "human"}),
+        ("safe", {"render_mode": "human"}),
+        ("sneaky_enemies", {"render_mode": "human"}),
+    ]
+
+    
+    # loop through each test env
+    for env_id, kwargs in test_envs:
+        print(f"-{env_id}-")
+        env = gymnasium.make(env_id, **kwargs)
+        # run 3 episodes per environment
+        for i in range(3):
+            # reset the env and get the initial observation
+            obs, info = env.reset()
+            done = False
+            steps = 0 
+            # at each step get the action and take a step
+            while not done:
+                action, _ = model.predict(obs, deterministic=True)
+                obs, reward, done, truncated, info = env.step(action)
+                steps += 1
+                done = done or truncated
+            # compute map coverage and print episode outcome
+            coverage = info["total_covered_cells"] / info["coverable_cells"] * 100
+            outcome = "CAUGHT" if info["game_over"] else ("DONE" if info["cells_remaining"] == 0 else "TIMEOUT")
+            print(f"  Episode {i+1}: {outcome} | Coverage: {coverage:.1f}% | Steps: {steps}")
+            time.sleep(1)
+        env.close()
+    
 
 # -------------------- #
 
-env = gymnasium.make("sneaky_enemies", render_mode="human", predefined_map_list=None, activate_game_status=True)
-num_episodes = 5
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", choices=["train", "train_best", "eval"], help="train, train_best, or eval")
+    parser.add_argument("--name", default="experiment", help="name for this run (used for saving/loading)")
+    parser.add_argument("--resume", action="store_true", help="resume training from the last checkpoint")
+    args = parser.parse_args()
 
-for i in range(num_episodes):
-    env.reset()
-    done = False
-    while not done:
-        action = human_player()
-        obs, reward, done, truncated, info = env.step(action)
-
-        # Sleep may be used to allow each step to be visualized. Value can be changed
-        #time.sleep(0.2)
-    if done:
-        time.sleep(2)
-env.close()
+    if args.mode == "train":
+        train(args.name, resume=args.resume)
+    elif args.mode == "train_best":
+        train_best(name=args.name if args.name != "experiment" else "best_agent")
+    else:
+        evaluate(args.name)
