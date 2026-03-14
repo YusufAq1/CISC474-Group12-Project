@@ -5,6 +5,24 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
+_COLORS = np.array([
+    [0,   0,   0  ],  # 0 = unexplored (BLACK)
+    [255, 255, 255],  # 1 = explored (WHITE)
+    [101, 67,  33 ],  # 2 = wall (BROWN)
+    [160, 161, 161],  # 3 = agent (GREY)
+    [31,  198, 0  ],  # 4 = enemy (GREEN)
+    [255, 0,   0  ],  # 5 = unexplored under surveillance (RED)
+    [255, 127, 127],  # 6 = explored under surveillance (LIGHT_RED)
+], dtype=np.uint8)
+
+def _encode_grid(grid: np.ndarray) -> np.ndarray:
+
+    flat = grid.reshape(100, 3)
+    result = np.zeros(100, dtype=np.int32)
+    for color_id, color in enumerate(_COLORS):
+        result[np.all(flat == color, axis=1)] = color_id
+    return result
+
 def observation_space(env: gym.Env) -> gym.spaces.Space:
     # 100 normalized grid values + agent_row + agent_col + coverage_fraction
     return gym.spaces.Box(low=0.0, high=1.0, shape=(103,), dtype=np.float32)
