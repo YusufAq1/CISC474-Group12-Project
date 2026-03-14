@@ -150,7 +150,7 @@ def train(name, resume=False):
     )
 
     # the training loop
-    model.learn(total_timesteps=100_000_000, callback=eval_callback)
+    model.learn(total_timesteps=1_000_000, callback=eval_callback)
     # save final model
     model.save(f"./models/{name}/final")
 
