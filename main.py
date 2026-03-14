@@ -131,14 +131,14 @@ def train(name, resume=False):
         eval_env,
         best_model_save_path=f"./models/{name}",
         log_path=f"./logs/{name}",
-        eval_freq=50000,
+        eval_freq=100,
         n_eval_episodes=5,
         deterministic=True,
         verbose=1,
     )
 
     # the training loop 
-    model.learn(total_timesteps=1000000, callback=eval_callback)
+    model.learn(total_timesteps=10000, callback=eval_callback)
     # save final model
     model.save(f"./models/{name}/final")
 
