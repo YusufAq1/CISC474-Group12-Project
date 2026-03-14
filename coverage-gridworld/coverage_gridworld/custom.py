@@ -5,32 +5,31 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
-_COLORS = np.array([
-    [0,   0,   0  ],  # 0 = unexplored (BLACK)
-    [255, 255, 255],  # 1 = explored (WHITE)
-    [101, 67,  33 ],  # 2 = wall (BROWN)
-    [160, 161, 161],  # 3 = agent (GREY)
-    [31,  198, 0  ],  # 4 = enemy (GREEN)
-    [255, 0,   0  ],  # 5 = unexplored under surveillance (RED)
-    [255, 127, 127],  # 6 = explored under surveillance (LIGHT_RED)
-], dtype=np.uint8)
-
-def _encode_grid(grid: np.ndarray) -> np.ndarray:
-
-    flat = grid.reshape(100, 3)
-    result = np.zeros(100, dtype=np.int32)
-    for color_id, color in enumerate(_COLORS):
-        result[np.all(flat == color, axis=1)] = color_id
-    return result
-
 def observation_space(env: gym.Env) -> gym.spaces.Space:
-
-    return gym.spaces.MultiDiscrete(np.full(100, 7, dtype=np.int32))
+    # 100 normalized grid values + agent_row + agent_col + coverage_fraction
+    return gym.spaces.Box(low=0.0, high=1.0, shape=(103,), dtype=np.float32)
 
 
 def observation(grid: np.ndarray):
-    
-    return _encode_grid(grid)
+    encoded = _encode_grid(grid)                          # shape (100,), int 0-6
+    normalized = encoded.astype(np.float32) / 6.0        # normalize to [0, 1]
+
+    # Extract agent position (encoded value 3)
+    agent_idxs = np.where(encoded == 3)[0]
+    if len(agent_idxs) > 0:
+        idx = agent_idxs[0]
+        agent_row = (idx // 10) / 9.0
+        agent_col = (idx % 10) / 9.0
+    else:
+        agent_row, agent_col = 0.0, 0.0
+
+    # Compute coverage fraction from grid
+    walls = np.sum(encoded == 2)
+    total_coverable = max(100 - walls, 1)
+    explored = np.sum(encoded == 1) + np.sum(encoded == 3) + np.sum(encoded == 6)
+    coverage_frac = float(explored) / total_coverable
+
+    return np.concatenate([normalized, [agent_row, agent_col, coverage_frac]]).astype(np.float32)
 
 
 def reward(info: dict) -> float:
@@ -51,14 +50,12 @@ def reward(info: dict) -> float:
     - new_cell_covered (bool): if a cell previously uncovered was covered on this step
     - game_over (bool) : if the game was terminated because the player was seen by an enemy or not
     """
-    r = -0.1  
     if info["game_over"]:
-        r -= 100
-    elif info["cells_remaining"] == 0:
-        r += 200
-    elif info["new_cell_covered"]:
-        r += 10
-    else:
-        r -= 0.3  
-    return r
+        return -50.0
+    if info["cells_remaining"] == 0:
+        efficiency = info["steps_remaining"] / 500.0
+        return 100.0 + efficiency * 50.0  # up to +150 for fast finish
+    if info["new_cell_covered"]:
+        return 1.0
+    return -0.05
     

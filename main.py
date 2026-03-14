@@ -100,10 +100,10 @@ def train(name, resume=False):
     
     # create training environment
     train_env = make_vec_env(
-        "standard",
-        n_envs=1,
+        "just_go",
+        n_envs=4,
         env_kwargs={
-            "predefined_map_list": maps
+            "predefined_map_list": None
         }
     )
 
@@ -118,10 +118,22 @@ def train(name, resume=False):
     if resume:
         model = PPO.load(f"./models/{name}/final", env=train_env)
         model.tensorboard_log = f"./logs/{name}"
-        print(f"Resume Training")
+        print(f"Resuming Training")
     # create PPO agent
     else:
-        model = PPO("MlpPolicy", train_env, verbose=1, tensorboard_log=f"./logs/{name}")
+        model = PPO(
+            "MlpPolicy",
+            train_env,
+            verbose=1,
+            tensorboard_log=f"./logs/{name}",
+            learning_rate=3e-4,
+            n_steps=2048,
+            batch_size=256,
+            n_epochs=10,
+            gamma=0.99,
+            ent_coef=0.01,
+            policy_kwargs=dict(net_arch=[256, 256]),
+        )
 
 
 
@@ -129,16 +141,16 @@ def train(name, resume=False):
     # evluates the agent for 5 episodes and saves the best model found so far
     eval_callback = EvalCallback(
         eval_env,
-        best_model_save_path=f"./models/{name}",
+        best_model_save_path=f"./models/{name}/",
         log_path=f"./logs/{name}",
-        eval_freq=100,
-        n_eval_episodes=5,
+        eval_freq=10_000,
+        n_eval_episodes=10,
         deterministic=True,
         verbose=1,
     )
 
-    # the training loop 
-    model.learn(total_timesteps=10000, callback=eval_callback)
+    # the training loop
+    model.learn(total_timesteps=100000, callback=eval_callback)
     # save final model
     model.save(f"./models/{name}/final")
 
