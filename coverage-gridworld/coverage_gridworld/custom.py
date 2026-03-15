@@ -24,8 +24,8 @@ def _encode_grid(grid: np.ndarray) -> np.ndarray:
     return result
 
 def observation_space(env: gym.Env) -> gym.spaces.Space:
-    # 100 normalized grid values + agent_row + agent_col + coverage_fraction
-    return gym.spaces.Box(low=0.0, high=1.0, shape=(103,), dtype=np.float32)
+    # 100 grid + agent_row + agent_col + coverage_frac + adjacent_danger + global_danger
+    return gym.spaces.Box(low=0.0, high=1.0, shape=(105,), dtype=np.float32)
 
 
 def observation(grid: np.ndarray):
@@ -35,19 +35,34 @@ def observation(grid: np.ndarray):
     # Extract agent position (encoded value 3)
     agent_idxs = np.where(encoded == 3)[0]
     if len(agent_idxs) > 0:
-        idx = agent_idxs[0]
+        idx = int(agent_idxs[0])
         agent_row = (idx // 10) / 9.0
         agent_col = (idx % 10) / 9.0
+        r, c = idx // 10, idx % 10
+        # Local danger: fraction of 4-adjacent cells that are surveillance zones (5 or 6)
+        adjacent_vals = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < 10 and 0 <= nc < 10:
+                adjacent_vals.append(encoded[nr * 10 + nc])
+        adjacent_danger = sum(1 for v in adjacent_vals if v in (5, 6)) / max(len(adjacent_vals), 1)
     else:
-        agent_row, agent_col = 0.0, 0.0
+        agent_row, agent_col, adjacent_danger = 0.0, 0.0, 0.0
 
-    # Compute coverage fraction from grid
+    # Coverage fraction
     walls = np.sum(encoded == 2)
     total_coverable = max(100 - walls, 1)
     explored = np.sum(encoded == 1) + np.sum(encoded == 3) + np.sum(encoded == 6)
     coverage_frac = float(explored) / total_coverable
 
-    return np.concatenate([normalized, [agent_row, agent_col, coverage_frac]]).astype(np.float32)
+    # Global danger: fraction of coverable cells under surveillance
+    surveillance = int(np.sum((encoded == 5) | (encoded == 6)))
+    global_danger = surveillance / total_coverable
+
+    return np.concatenate([
+        normalized,
+        [agent_row, agent_col, coverage_frac, adjacent_danger, global_danger]
+    ]).astype(np.float32)
 
 
 def reward(info: dict) -> float:
@@ -70,10 +85,22 @@ def reward(info: dict) -> float:
     """
     if info["game_over"]:
         return -50.0
+
     if info["cells_remaining"] == 0:
         efficiency = info["steps_remaining"] / 500.0
         return 100.0 + efficiency * 50.0  # up to +150 for fast finish
-    if info["new_cell_covered"]:
-        return 1.0
-    return -0.05
+
+    # Soft danger penalty: penalize being adjacent to enemy FOV cells
+    agent_pos = info["agent_pos"]
+    all_fov_flat = set(
+        cell[1] * 10 + cell[0]
+        for enemy in info["enemies"]
+        for cell in enemy.get_fov_cells()
+    )
+    adjacent_flat = {agent_pos - 10, agent_pos + 10, agent_pos - 1, agent_pos + 1}
+    adjacent_danger = len(adjacent_flat & all_fov_flat)
+
+    r = 1.0 if info["new_cell_covered"] else -0.05
+    r -= adjacent_danger * 0.2
+    return r
     
