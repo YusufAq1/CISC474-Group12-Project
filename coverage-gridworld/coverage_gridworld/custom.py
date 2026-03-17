@@ -199,6 +199,42 @@ def _reward_main_risk(info: dict) -> float:
     return r
 
 
+
+def _reward_stealth_safe(info: dict) -> float:
+    """
+    Reward 3: Stealth + Safe Exploration (Arian)
+    Focuses more on avoiding danger than speed
+    """
+
+    # Strong penalty if caught
+    if info["game_over"]:
+        return -90.0
+
+    # Reward for finishing
+    if info["cells_remaining"] == 0:
+        efficiency = info["steps_remaining"] / 500.0
+        return 110.0 + efficiency * 40.0
+
+    # Base reward
+    r = 1.2 if info["new_cell_covered"] else -0.1
+
+    # Strong danger avoidance
+    agent_pos = info["agent_pos"]
+    all_fov_flat = set(
+        cell[1] * 10 + cell[0]
+        for enemy in info["enemies"]
+        for cell in enemy.get_fov_cells()
+    )
+
+    adjacent_flat = {agent_pos - 10, agent_pos + 10, agent_pos - 1, agent_pos + 1}
+    adjacent_danger = len(adjacent_flat & all_fov_flat)
+
+    # MUCH stronger penalty than other rewards
+    r -= adjacent_danger * 0.7
+
+    return r
+
+
 def reward(info: dict) -> float:
     """
     Function to calculate the reward for the current step based on the state information.
@@ -221,6 +257,8 @@ def reward(info: dict) -> float:
         return float(_reward_balanced(info))
     if REWARD_MODE == "main_risk":
         return float(_reward_main_risk(info))
+    if REWARD_MODE == "stealth_safe":
+        return float(_reward_stealth_safe(info))
 
     raise ValueError("Unsupported REWARD_MODE: "
-                     f"{REWARD_MODE}. Available modes: balanced, main_risk")
+                     f"{REWARD_MODE}. Available modes: balanced, main_risk, stealth_safe")
