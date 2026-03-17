@@ -5,27 +5,118 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
+OBS_MODE = "semantic6"
+REWARD_MODE = "balanced"
+INITIAL_STEPS = 500
+
+# RGB colors from env.py
+BLACK = np.array([0, 0, 0], dtype=np.uint8)
+WHITE = np.array([255, 255, 255], dtype=np.uint8)
+BROWN = np.array([101, 67, 33], dtype=np.uint8)
+GREY = np.array([160, 161, 161], dtype=np.uint8)
+GREEN = np.array([31, 198, 0], dtype=np.uint8)
+RED = np.array([255, 0, 0], dtype=np.uint8)
+LIGHT_RED = np.array([255, 127, 127], dtype=np.uint8)
+
+
+def _mask(grid: np.ndarray, color: np.ndarray) -> np.ndarray:
+    """
+    Build a binary mask where cells matching the color are 1.0.
+    """
+    return np.all(grid == color, axis=2).astype(np.float32)
+
 
 def observation_space(env: gym.Env) -> gym.spaces.Space:
     """
     Observation space from Gymnasium (https://gymnasium.farama.org/api/spaces/)
     """
-    # The grid has (10, 10, 3) shape and can store values from 0 to 255 (uint8). To use the whole grid as the
-    # observation space, we can consider a MultiDiscrete space with values in the range [0, 256).
-    cell_values = env.grid + 256
+    if OBS_MODE == "default":
+        cell_values = env.grid + 256
+        return gym.spaces.MultiDiscrete(cell_values.flatten())
 
-    # if MultiDiscrete is used, it's important to flatten() numpy arrays!
-    return gym.spaces.MultiDiscrete(cell_values.flatten())
+    if OBS_MODE == "semantic6":
+        if hasattr(env, "grid") and isinstance(env.grid, np.ndarray) and env.grid.ndim >= 2:
+            h, w = env.grid.shape[:2]
+        elif hasattr(env, "grid_size"):
+            h = int(env.grid_size)
+            w = int(env.grid_size)
+        else:
+            raise ValueError("Cannot infer grid dimensions for semantic6 observation space.")
+
+        return gym.spaces.Box(low=0.0, high=1.0, shape=(6 * h * w,), dtype=np.float32)
+
+    raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
 
 def observation(grid: np.ndarray):
     """
     Function that returns the observation for the current state of the environment.
     """
-    # If the observation returned is not the same shape as the observation_space, an error will occur!
-    # Make sure to make changes to both functions accordingly.
+    if OBS_MODE == "default":
+        return grid.flatten()
 
-    return grid.flatten()
+    if OBS_MODE == "semantic6":
+        h, w = grid.shape[:2]
+
+        agent = _mask(grid, GREY)
+        wall = _mask(grid, BROWN)
+        enemy = _mask(grid, GREEN)
+
+        red = _mask(grid, RED)
+        light_red = _mask(grid, LIGHT_RED)
+        white = _mask(grid, WHITE)
+        black = _mask(grid, BLACK)
+
+        danger_now = np.clip(red + light_red, 0.0, 1.0)
+        visited = np.clip(white + light_red + agent, 0.0, 1.0)
+        unvisited = np.clip(black + red, 0.0, 1.0)
+
+        channels = np.stack(
+            [
+                agent,
+                wall,
+                enemy,
+                danger_now,
+                visited,
+                unvisited,
+            ],
+            axis=0,
+        ).astype(np.float32)
+
+        return channels.reshape(6 * h * w).astype(np.float32)
+
+    raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
+
+
+def _reward_balanced(info: dict) -> float:
+    cells_remaining = info["cells_remaining"]
+    steps_remaining = info["steps_remaining"]
+    new_cell_covered = info["new_cell_covered"]
+    game_over = info["game_over"]
+
+    reward_value = 0.0
+    reward_value -= 0.01
+
+    if new_cell_covered:
+        reward_value += 0.30
+    else:
+        reward_value -= 0.03
+
+    if game_over:
+        reward_value -= 12.0
+    elif cells_remaining == 0:
+        reward_value += 12.0
+    elif steps_remaining == 0:
+        reward_value -= 3.0
+
+    return reward_value
+
+
+def _reward_zero(info: dict) -> float:
+    """
+    Baseline reward for debug.
+    """
+    return 0.0
 
 
 def reward(info: dict) -> float:
@@ -46,16 +137,10 @@ def reward(info: dict) -> float:
     - new_cell_covered (bool): if a cell previously uncovered was covered on this step
     - game_over (bool) : if the game was terminated because the player was seen by an enemy or not
     """
-    enemies = info["enemies"]
-    agent_pos = info["agent_pos"]
-    total_covered_cells = info["total_covered_cells"]
-    cells_remaining = info["cells_remaining"]
-    coverable_cells = info["coverable_cells"]
-    steps_remaining = info["steps_remaining"]
-    new_cell_covered = info["new_cell_covered"]
-    game_over = info["game_over"]
+    if REWARD_MODE == "balanced":
+        return float(_reward_balanced(info))
+    if REWARD_MODE == "zero":
+        return float(_reward(info))
 
-    # IMPORTANT: You may design a reward function that uses just some of these values. Experiment with different
-    # rewards and find out what works best for the algorithm you chose given the observation space you are using
-
-    return 0
+    raise ValueError("Unsupported REWARD_MODE: "
+                     f"{REWARD_MODE}. Available modes: balanced, zero")
