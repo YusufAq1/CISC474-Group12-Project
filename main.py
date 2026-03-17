@@ -7,6 +7,7 @@ import coverage_gridworld  # must be imported, even though it's not directly ref
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback
+import matplotlib.pyplot as plt
 
 
 def human_player():
@@ -171,34 +172,71 @@ def evaluate(name):
 
     # Test agent on the following 3 envs 
     test_envs = [
-        ("just_go", {"render_mode": "human"}),
-        ("safe", {"render_mode": "human"}),
-        ("sneaky_enemies", {"render_mode": "human"}),
+        ("just_go", {"render_mode": None}),
+        ("safe", {"render_mode": None}),
+        ("sneaky_enemies", {"render_mode": None}),
     ]
 
-    
+    # ---- ADDED: storage for plots ----
+    all_coverages = []
+    all_steps = []
+    labels = []
+
     # loop through each test env
     for env_id, kwargs in test_envs:
         print(f"-{env_id}-")
         env = gymnasium.make(env_id, **kwargs)
+
         # run 3 episodes per environment
         for i in range(3):
-            # reset the env and get the initial observation
             obs, info = env.reset()
             done = False
             steps = 0 
-            # at each step get the action and take a step
+
             while not done:
                 action, _ = model.predict(obs, deterministic=True)
                 obs, reward, done, truncated, info = env.step(action)
                 steps += 1
                 done = done or truncated
-            # compute map coverage and print episode outcome
+
+            # compute map coverage
             coverage = info["total_covered_cells"] / info["coverable_cells"] * 100
-            outcome = "CAUGHT" if info["game_over"] else ("DONE" if info["cells_remaining"] == 0 else "TIMEOUT")
+
+            outcome = "CAUGHT" if info["game_over"] else (
+                "DONE" if info["cells_remaining"] == 0 else "TIMEOUT"
+            )
+
             print(f"  Episode {i+1}: {outcome} | Coverage: {coverage:.1f}% | Steps: {steps}")
+
+            # ---- ADDED: store results ----
+            all_coverages.append(coverage)
+            all_steps.append(steps)
+            labels.append(f"{env_id}-{i+1}")
+
             time.sleep(1)
+
         env.close()
+
+
+    # Coverage plot
+    plt.figure()
+    plt.bar(labels, all_coverages)
+    plt.xticks(rotation=45)
+    plt.ylabel("Coverage (%)")
+    plt.title("Coverage per Episode")
+    plt.tight_layout()
+    plt.savefig("coverage_plot.png")
+
+    # Steps plot
+    plt.figure()
+    plt.bar(labels, all_steps)
+    plt.xticks(rotation=45)
+    plt.ylabel("Steps")
+    plt.title("Steps per Episode")
+    plt.tight_layout()
+    plt.savefig("steps_plot.png")
+
+    print("Plots saved: coverage_plot.png, steps_plot.png")
     
 
 # -------------------- #

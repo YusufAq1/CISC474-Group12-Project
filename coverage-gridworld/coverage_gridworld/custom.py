@@ -5,7 +5,7 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
-OBS_MODE = "semantic6"
+OBS_MODE = "compact105"
 REWARD_MODE = "balanced"
 GRID_SIZE = 10
 
