@@ -5,27 +5,198 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
+OBS_MODE = "semantic6"
+REWARD_MODE = "balanced"
+GRID_SIZE = 10
+
+_COLORS = np.array([
+    [0,   0,   0  ],  # 0 = unexplored (BLACK)
+    [255, 255, 255],  # 1 = explored (WHITE)
+    [101, 67,  33 ],  # 2 = wall (BROWN)
+    [160, 161, 161],  # 3 = agent (GREY)
+    [31,  198, 0  ],  # 4 = enemy (GREEN)
+    [255, 0,   0  ],  # 5 = unexplored under surveillance (RED)
+    [255, 127, 127],  # 6 = explored under surveillance (LIGHT_RED)
+], dtype=np.uint8)
+
+# Named aliases for semantic6 readability.
+BLACK, WHITE, BROWN, GREY, GREEN, RED, LIGHT_RED = _COLORS
+
+
+def _mask(grid: np.ndarray, color: np.ndarray) -> np.ndarray:
+    """
+    Build a binary mask where cells matching the color are 1.0.
+    """
+    return np.all(grid == color, axis=2).astype(np.float32)
+
+
+def _encode_grid(grid: np.ndarray) -> np.ndarray:
+    flat = grid.reshape(100, 3)
+    encoded = np.zeros(100, dtype=np.int32)
+    for color_id, color in enumerate(_COLORS):
+        encoded[np.all(flat == color, axis=1)] = color_id
+    return encoded
+
+
+def _observation_compact105(grid: np.ndarray) -> np.ndarray:
+    encoded = _encode_grid(grid)                          # shape (100,), int 0-6
+    normalized = encoded.astype(np.float32) / 6.0        # normalize to [0, 1]
+
+    # Extract agent position (encoded value 3)
+    agent_idxs = np.where(encoded == 3)[0]
+    if len(agent_idxs) > 0:
+        idx = int(agent_idxs[0])
+        agent_row = (idx // 10) / 9.0
+        agent_col = (idx % 10) / 9.0
+        r, c = idx // 10, idx % 10
+        # Local danger: fraction of 4-adjacent cells that are surveillance zones (5 or 6)
+        adjacent_vals = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < 10 and 0 <= nc < 10:
+                adjacent_vals.append(encoded[nr * 10 + nc])
+        adjacent_danger = sum(1 for v in adjacent_vals if v in (5, 6)) / max(len(adjacent_vals), 1)
+    else:
+        agent_row, agent_col, adjacent_danger = 0.0, 0.0, 0.0
+
+    # Coverage fraction
+    walls = np.sum(encoded == 2)
+    total_coverable = max(100 - walls, 1)
+    explored = np.sum(encoded == 1) + np.sum(encoded == 3) + np.sum(encoded == 6)
+    coverage_frac = float(explored) / total_coverable
+
+    # Global danger: fraction of coverable cells under surveillance
+    surveillance = int(np.sum((encoded == 5) | (encoded == 6)))
+    global_danger = surveillance / total_coverable
+
+    return np.concatenate([
+        normalized,
+        [agent_row, agent_col, coverage_frac, adjacent_danger, global_danger]
+    ]).astype(np.float32)
+
+
+def _observation_semantic6(grid: np.ndarray) -> np.ndarray:
+    """
+    Daniel observation function
+    """
+    h, w = grid.shape[:2]
+
+    agent = _mask(grid, GREY)
+    wall = _mask(grid, BROWN)
+    enemy = _mask(grid, GREEN)
+
+    red = _mask(grid, RED)
+    light_red = _mask(grid, LIGHT_RED)
+    white = _mask(grid, WHITE)
+    black = _mask(grid, BLACK)
+
+    danger_now = np.clip(red + light_red, 0.0, 1.0)
+    visited = np.clip(white + light_red + agent, 0.0, 1.0)
+    unvisited = np.clip(black + red, 0.0, 1.0)
+
+    channels = np.stack(
+        [
+            agent,
+            wall,
+            enemy,
+            danger_now,
+            visited,
+            unvisited,
+        ],
+        axis=0,
+    ).astype(np.float32)
+
+    return channels.reshape(6 * h * w).astype(np.float32)
+
 
 def observation_space(env: gym.Env) -> gym.spaces.Space:
     """
     Observation space from Gymnasium (https://gymnasium.farama.org/api/spaces/)
     """
-    # The grid has (10, 10, 3) shape and can store values from 0 to 255 (uint8). To use the whole grid as the
-    # observation space, we can consider a MultiDiscrete space with values in the range [0, 256).
-    cell_values = env.grid + 256
+    if OBS_MODE == "default":
+        cell_values = env.grid + 256
+        return gym.spaces.MultiDiscrete(cell_values.flatten())
 
-    # if MultiDiscrete is used, it's important to flatten() numpy arrays!
-    return gym.spaces.MultiDiscrete(cell_values.flatten())
+    if OBS_MODE == "semantic6":
+        if hasattr(env, "grid") and isinstance(env.grid, np.ndarray) and env.grid.ndim >= 2:
+            h, w = env.grid.shape[:2]
+        elif hasattr(env, "grid_size"):
+            h = int(env.grid_size)
+            w = int(env.grid_size)
+        else:
+            raise ValueError("Cannot infer grid dimensions for semantic6 observation space.")
+        return gym.spaces.Box(low=0.0, high=1.0, shape=(6 * h * w,), dtype=np.float32)
+
+    if OBS_MODE == "compact105":
+        return gym.spaces.Box(low=0.0, high=1.0, shape=(105,), dtype=np.float32)
+
+    raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
 
 def observation(grid: np.ndarray):
     """
     Function that returns the observation for the current state of the environment.
     """
-    # If the observation returned is not the same shape as the observation_space, an error will occur!
-    # Make sure to make changes to both functions accordingly.
+    if OBS_MODE == "default":
+        return grid.flatten()
 
-    return grid.flatten()
+    if OBS_MODE == "semantic6":
+        return _observation_semantic6(grid)
+
+    if OBS_MODE == "compact105":
+        return _observation_compact105(grid)
+
+    raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
+
+
+def _reward_balanced(info: dict) -> float:
+    """
+    Daniel reward function
+    """
+    cells_remaining = info["cells_remaining"]
+    steps_remaining = info["steps_remaining"]
+    new_cell_covered = info["new_cell_covered"]
+    game_over = info["game_over"]
+
+    reward_value = 0.0
+    reward_value -= 0.01
+
+    if new_cell_covered:
+        reward_value += 0.30
+    else:
+        reward_value -= 0.03
+
+    if game_over:
+        reward_value -= 12.0
+    elif cells_remaining == 0:
+        reward_value += 12.0
+    elif steps_remaining == 0:
+        reward_value -= 3.0
+
+    return reward_value
+
+
+def _reward_main_risk(info: dict) -> float:
+    if info["game_over"]:
+        return -50.0
+
+    if info["cells_remaining"] == 0:
+        efficiency = info["steps_remaining"] / 500.0
+        return 100.0 + efficiency * 50.0  # up to +150 for fast finish
+
+    # Soft danger penalty: penalize being adjacent to enemy FOV cells
+    agent_pos = info["agent_pos"]
+    all_fov_flat = set(
+        cell[1] * 10 + cell[0]
+        for enemy in info["enemies"]
+        for cell in enemy.get_fov_cells()
+    )
+    adjacent_flat = {agent_pos - 10, agent_pos + 10, agent_pos - 1, agent_pos + 1}
+    adjacent_danger = len(adjacent_flat & all_fov_flat)
+
+    r = 1.0 if info["new_cell_covered"] else -0.05
+    r -= adjacent_danger * 0.2
+    return r
 
 
 def reward(info: dict) -> float:
@@ -46,16 +217,10 @@ def reward(info: dict) -> float:
     - new_cell_covered (bool): if a cell previously uncovered was covered on this step
     - game_over (bool) : if the game was terminated because the player was seen by an enemy or not
     """
-    enemies = info["enemies"]
-    agent_pos = info["agent_pos"]
-    total_covered_cells = info["total_covered_cells"]
-    cells_remaining = info["cells_remaining"]
-    coverable_cells = info["coverable_cells"]
-    steps_remaining = info["steps_remaining"]
-    new_cell_covered = info["new_cell_covered"]
-    game_over = info["game_over"]
+    if REWARD_MODE == "balanced":
+        return float(_reward_balanced(info))
+    if REWARD_MODE == "main_risk":
+        return float(_reward_main_risk(info))
 
-    # IMPORTANT: You may design a reward function that uses just some of these values. Experiment with different
-    # rewards and find out what works best for the algorithm you chose given the observation space you are using
-
-    return 0
+    raise ValueError("Unsupported REWARD_MODE: "
+                     f"{REWARD_MODE}. Available modes: balanced, main_risk")
