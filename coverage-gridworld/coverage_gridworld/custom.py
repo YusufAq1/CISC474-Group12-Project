@@ -235,6 +235,53 @@ def _reward_stealth_safe(info: dict) -> float:
     return r
 
 
+
+
+# ----- NEW REWARD FUNCTION BY YUSUF ------- # 
+
+def _reward_fn3(info: dict) -> float:
+
+    if info["game_over"]:
+        return -250.0
+
+    if info["cells_remaining"] == 0:
+        
+        return 500.0 + info["steps_remaining"] * 0.3
+
+    coverage = info["total_covered_cells"] / info["coverable_cells"]
+
+    if info["new_cell_covered"]:
+        
+        r = 10.0 + coverage * 15.0
+    else:
+        
+        r = -1.0
+
+    agent_row = info["agent_pos"] // 10
+    agent_col = info["agent_pos"] % 10
+    fov_cells = set()
+    for enemy in info["enemies"]:
+        for cell in enemy.get_fov_cells():
+            fov_cells.add(cell)
+
+    adjacent_danger = sum(
+        1 for (nr, nc) in [
+            (agent_row - 1, agent_col),
+            (agent_row + 1, agent_col),
+            (agent_row,     agent_col - 1),
+            (agent_row,     agent_col + 1),
+        ]
+        if (nr, nc) in fov_cells
+    )
+    r -= adjacent_danger * 20.0
+
+    r -= 0.2
+
+    return r
+
+
+
+
 def reward(info: dict) -> float:
     """
     Function to calculate the reward for the current step based on the state information.
@@ -259,6 +306,8 @@ def reward(info: dict) -> float:
         return float(_reward_main_risk(info))
     if REWARD_MODE == "stealth_safe":
         return float(_reward_stealth_safe(info))
+    if REWARD_MODE == "_reward_fn3":
+        return float(_reward_fn3(info))
 
     raise ValueError("Unsupported REWARD_MODE: "
                      f"{REWARD_MODE}. Available modes: balanced, main_risk, stealth_safe")
