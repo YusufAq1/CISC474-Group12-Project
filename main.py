@@ -101,18 +101,18 @@ def train(name, resume=False):
     
     # create training environment
     train_env = make_vec_env(
-        "just_go",
-        n_envs=4,
+        "standard",
+        n_envs=5,
         env_kwargs={
-            "predefined_map_list": None
+            "predefined_map_list": maps
         }
     )
 
     # create evaluation environment
     eval_env = make_vec_env(
-        "just_go",
-        n_envs=1,
-        env_kwargs={"render_mode": None}
+        "standard",
+        n_envs=5,
+        env_kwargs={"render_mode": None, "predefined_map_list": maps}
     )
 
     # if resuming training, load the model
@@ -238,6 +238,14 @@ def evaluate(name):
 
     print("Plots saved: coverage_plot.png, steps_plot.png")
     
+# ------ TRAINING THE BEST AGENT FOR COMPETITION ------ #
+
+def train_competition():
+    pass
+
+def evaluate_best():
+    pass
+
 
 # -------------------- #
 
