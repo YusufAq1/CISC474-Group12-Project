@@ -175,7 +175,7 @@ def evaluate(name):
         ("just_go", {"render_mode": 'human'}),
         ("safe", {"render_mode": 'human'}),
         ("maze", {"render_mode": 'human'}),
-        ("chockepoint", {"render_mode": 'human'}),
+        ("chokepoint", {"render_mode": 'human'}),
         ("sneaky_enemies", {"render_mode": 'human'}),
     ]
 
