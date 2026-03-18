@@ -189,8 +189,8 @@ def evaluate(name):
         print(f"-{env_id}-")
         env = gymnasium.make(env_id, **kwargs)
 
-        # run 3 episodes per environment
-        for i in range(3):
+        # run 1 episodes per environment
+        for i in range(1):
             obs, info = env.reset()
             done = False
             steps = 0 

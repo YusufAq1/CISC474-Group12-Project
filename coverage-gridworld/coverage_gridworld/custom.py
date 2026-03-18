@@ -5,8 +5,8 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
-OBS_MODE = "compact105"
-REWARD_MODE = "balanced"
+OBS_MODE = "A"
+REWARD_MODE = "_reward_fn3"
 GRID_SIZE = 10
 
 _COLORS = np.array([
@@ -129,6 +129,9 @@ def observation_space(env: gym.Env) -> gym.spaces.Space:
 
     if OBS_MODE == "compact105":
         return gym.spaces.Box(low=0.0, high=1.0, shape=(105,), dtype=np.float32)
+
+    if OBS_MODE == "A":
+        return _obs_space_a()
 
     raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
