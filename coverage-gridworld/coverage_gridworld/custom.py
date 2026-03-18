@@ -132,6 +132,44 @@ def observation_space(env: gym.Env) -> gym.spaces.Space:
 
     raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
+# ----- NEW OBS YUSUF ----- #
+def _grid_to_ids(grid: np.ndarray) -> np.ndarray:
+    
+    flat = grid.reshape(100, 3)
+    result = np.zeros(100, dtype=np.int32)
+    for cid, color in enumerate(_COLORS):
+        result[np.all(flat == color, axis=1)] = cid
+    return result.reshape(10, 10)
+
+
+def _obs_a(grid: np.ndarray) -> np.ndarray:
+    ids = _grid_to_ids(grid)  # (10, 10)
+    channels = np.zeros((6, 10, 10), dtype=np.float32)
+    channels[0] = (ids == 0).astype(np.float32)              # unexplored
+    channels[1] = np.isin(ids, [1, 3]).astype(np.float32)    # explored
+    channels[2] = (ids == 2).astype(np.float32)              # wall
+    channels[3] = (ids == 3).astype(np.float32)              # agent position
+    channels[4] = (ids == 4).astype(np.float32)              # enemy
+    channels[5] = np.isin(ids, [5, 6]).astype(np.float32)    # danger
+
+
+    agent_cells = np.argwhere(ids == 3)
+    unexplored_cells = np.argwhere(ids == 0)
+    if len(agent_cells) > 0 and len(unexplored_cells) > 0:
+        ar, ac = agent_cells[0]
+        dists = np.abs(unexplored_cells[:, 0] - ar) + np.abs(unexplored_cells[:, 1] - ac)
+        nearest = unexplored_cells[np.argmin(dists)]
+        direction = np.array([(nearest[0] - ar) / 9.0, (nearest[1] - ac) / 9.0],
+                             dtype=np.float32)
+    else:
+        direction = np.zeros(2, dtype=np.float32)
+
+    return np.concatenate([channels.flatten(), direction])  # (602,)
+
+
+def _obs_space_a() -> gym.spaces.Space:
+    return gym.spaces.Box(low=-1.0, high=1.0, shape=(602,), dtype=np.float32)
+
 
 def observation(grid: np.ndarray):
     """
@@ -145,6 +183,9 @@ def observation(grid: np.ndarray):
 
     if OBS_MODE == "compact105":
         return _observation_compact105(grid)
+
+    if OBS_MODE == "A":
+        return _obs_a(grid)
 
     raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
