@@ -5,9 +5,10 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
-OBS_MODE = "A"
-REWARD_MODE = "_reward_fn3"
+OBS_MODE = "B"
+REWARD_MODE = "_reward_fn4"
 GRID_SIZE = 10
+_prev_agent_pos = None
 
 _COLORS = np.array([
     [0,   0,   0  ],  # 0 = unexplored (BLACK)
@@ -132,6 +133,9 @@ def observation_space(env: gym.Env) -> gym.spaces.Space:
 
     if OBS_MODE == "A":
         return _obs_space_a()
+    
+    if OBS_MODE == "B":
+        return _obs_space_b()
 
     raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
@@ -170,14 +174,83 @@ def _obs_a(grid: np.ndarray) -> np.ndarray:
     return np.concatenate([channels.flatten(), direction])  # (602,)
 
 
+#Davids Obs with prev position global
+def _obs_b(grid: np.ndarray) -> np.ndarray:
+    global _prev_agent_pos
+
+    ids = _grid_to_ids(grid)
+
+    channels = np.zeros((6, 10, 10), dtype=np.float32)
+    channels[0] = (ids == 0).astype(np.float32)
+    channels[1] = np.isin(ids, [1, 3]).astype(np.float32)
+    channels[2] = (ids == 2).astype(np.float32)
+    channels[3] = (ids == 3).astype(np.float32)
+    channels[4] = (ids == 4).astype(np.float32)
+    channels[5] = np.isin(ids, [5, 6]).astype(np.float32)
+
+    agent_cells = np.argwhere(ids == 3)
+
+    direction = np.zeros(2, dtype=np.float32)
+    safe_direction = np.zeros(2, dtype=np.float32)
+    danger_density = 0.0
+    escape_routes = 0.0
+    revisit_flag = 0.0
+
+    if len(agent_cells) > 0:
+        ar, ac = agent_cells[0]
+        current_pos = ar * 10 + ac
+
+        # --- revisit detection ---
+        if _prev_agent_pos is not None and _prev_agent_pos == current_pos:
+            revisit_flag = 1.0
+
+        _prev_agent_pos = current_pos  # update AFTER check
+
+        unexplored = np.argwhere(ids == 0)
+        safe_unexplored = np.argwhere((ids == 0) & (~np.isin(ids, [5])))
+
+        if len(unexplored) > 0:
+            dists = np.abs(unexplored[:, 0] - ar) + np.abs(unexplored[:, 1] - ac)
+            nearest = unexplored[np.argmin(dists)]
+            direction = np.array([(nearest[0] - ar) / 9.0,
+                                  (nearest[1] - ac) / 9.0], dtype=np.float32)
+
+        if len(safe_unexplored) > 0:
+            dists = np.abs(safe_unexplored[:, 0] - ar) + np.abs(safe_unexplored[:, 1] - ac)
+            nearest = safe_unexplored[np.argmin(dists)]
+            safe_direction = np.array([(nearest[0] - ar) / 9.0,
+                                       (nearest[1] - ac) / 9.0], dtype=np.float32)
+
+        local = ids[max(0, ar-1):min(10, ar+2), max(0, ac-1):min(10, ac+2)]
+        danger_density = np.mean(np.isin(local, [5, 6]).astype(np.float32))
+
+        free = 0
+        for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nr, nc = ar+dr, ac+dc
+            if 0 <= nr < 10 and 0 <= nc < 10:
+                if ids[nr, nc] not in [2, 4]:
+                    free += 1
+        escape_routes = free / 4.0
+
+    return np.concatenate([
+        channels.flatten(),
+        direction,
+        safe_direction,
+        [danger_density, escape_routes, revisit_flag]
+    ]).astype(np.float32)
+
 def _obs_space_a() -> gym.spaces.Space:
     return gym.spaces.Box(low=-1.0, high=1.0, shape=(602,), dtype=np.float32)
 
+def _obs_space_b() -> gym.spaces.Space:
+    return gym.spaces.Box(low=-1.0, high=1.0, shape=(607,), dtype=np.float32)
 
 def observation(grid: np.ndarray):
     """
     Function that returns the observation for the current state of the environment.
     """
+    global _prev_agent_pos
+
     if OBS_MODE == "default":
         return grid.flatten()
 
@@ -189,6 +262,15 @@ def observation(grid: np.ndarray):
 
     if OBS_MODE == "A":
         return _obs_a(grid)
+    
+    if OBS_MODE == "B":
+        ids = _grid_to_ids(grid)
+        agent_idxs = np.where(ids.flatten() == 3)[0]
+
+        if len(agent_idxs) > 0 and agent_idxs[0] == 0:
+            _prev_agent_pos = None
+
+        return _obs_b(grid)
 
     raise ValueError(f"Unsupported OBS_MODE: {OBS_MODE}")
 
@@ -324,6 +406,49 @@ def _reward_fn3(info: dict) -> float:
     return r
 
 
+#David Reward Implementation
+def _reward_fn4(info: dict) -> float:
+
+    if info["game_over"]:
+        return -200.0
+
+    if info["cells_remaining"] == 0:
+        return 400.0 + info["steps_remaining"] * 0.5
+    r = 0.0
+    if info["new_cell_covered"]:
+        r += 8.0
+    else:
+        r -= 0.5
+    r -= 0.1
+
+    coverage = info["total_covered_cells"] / info["coverable_cells"]
+    r += coverage * 5.0
+    agent_pos = info["agent_pos"]
+    agent_row = agent_pos // 10
+    agent_col = agent_pos % 10
+
+    fov_cells = set()
+    for enemy in info["enemies"]:
+        for cell in enemy.get_fov_cells():
+            fov_cells.add(cell)
+
+    adjacent_danger = sum(
+        1 for (nr, nc) in [
+            (agent_row - 1, agent_col),
+            (agent_row + 1, agent_col),
+            (agent_row, agent_col - 1),
+            (agent_row, agent_col + 1),
+        ]
+        if (nr, nc) in fov_cells
+    )
+
+    r -= adjacent_danger * 8.0
+    if (agent_row, agent_col) in fov_cells:
+        r -= 15.0
+
+    return r
+
+
 
 
 def reward(info: dict) -> float:
@@ -352,6 +477,8 @@ def reward(info: dict) -> float:
         return float(_reward_stealth_safe(info))
     if REWARD_MODE == "_reward_fn3":
         return float(_reward_fn3(info))
+    if REWARD_MODE == "_reward_fn4":
+        return float(_reward_fn4(info))
 
     raise ValueError("Unsupported REWARD_MODE: "
-                     f"{REWARD_MODE}. Available modes: balanced, main_risk, stealth_safe")
+                     f"{REWARD_MODE}. Available modes: balanced, main_risk, stealth_safe, _reward_fn3, _reward_fn4")
