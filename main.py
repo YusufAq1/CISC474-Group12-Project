@@ -170,11 +170,13 @@ def evaluate(name):
     except FileNotFoundError:
         model = PPO.load(name)
 
-    # Test agent on the following 3 envs 
+    # Test agent on the following 5 envs 
     test_envs = [
-        ("just_go", {"render_mode": None}),
-        ("safe", {"render_mode": None}),
-        ("sneaky_enemies", {"render_mode": None}),
+        ("just_go", {"render_mode": 'human'}),
+        ("safe", {"render_mode": 'human'}),
+        ("maze", {"render_mode": 'human'}),
+        ("chockepoint", {"render_mode": 'human'}),
+        ("sneaky_enemies", {"render_mode": 'human'}),
     ]
 
     # ---- ADDED: storage for plots ----
