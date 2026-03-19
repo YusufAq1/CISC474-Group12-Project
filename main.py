@@ -8,6 +8,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback
 import matplotlib.pyplot as plt
+import os
 
 
 def human_player():

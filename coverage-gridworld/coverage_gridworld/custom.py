@@ -5,8 +5,8 @@ import gymnasium as gym
 Feel free to modify the functions below and experiment with different environment configurations.
 """
 
-OBS_MODE = "B"
-REWARD_MODE = "_reward_fn4"
+OBS_MODE = "A"
+REWARD_MODE = "stealth_safe"
 GRID_SIZE = 10
 _prev_agent_pos = None
 
