@@ -499,7 +499,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
 def evaluate_best(name="best_agent"):
     # load the best model found during training
     try:
-        model = PPO.load(f"./models/{name}/best_model")
+        model = PPO.load(f"./train_comp_results/{name}")
     except FileNotFoundError:
         model = PPO.load(name)
 
