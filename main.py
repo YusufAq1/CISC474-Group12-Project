@@ -425,7 +425,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
         model.tensorboard_log = f"./logs/{name}"
         model.learn(
             total_timesteps=extra_timesteps,
-            callback=[eval_callback, cov_callback],
+            callback=[eval_callback],
             reset_num_timesteps=False,  
         )
         model.save(f"./models/{name}/final")
@@ -486,7 +486,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
             print(f"  Stage {stage_idx + 1} checkpoint saved.")
             train_env.close()
 
-        model.save(f"./models/{name}/final")
+        model.save(f"./models/{name}/best_model")
         print(f"\nCurriculum training complete: {name}")
 
     best_src = f"./models/{name}/best_model.zip"
@@ -499,7 +499,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
 def evaluate_best(name="best_agent"):
     # load the best model found during training
     try:
-        model = PPO.load(f"./train_comp_results/{name}")
+        model = PPO.load(f"./models/{name}/best_model")
     except FileNotFoundError:
         model = PPO.load(name)
 
@@ -556,12 +556,13 @@ if __name__ == "__main__":
     parser.add_argument("mode", choices=["train", "train_competition", "eval", "evaluate_best"], help="train, train_competition, eval, or evaluate_best")
     parser.add_argument("--name", default="experiment", help="name for this run (used for saving/loading)")
     parser.add_argument("--resume", action="store_true", help="resume training from the last checkpoint")
+    parser.add_argument("--extra_timesteps", type=int, default=3_000_000, help="extra timesteps when resuming train_competition")
     args = parser.parse_args()
 
     if args.mode == "train":
         train(args.name, resume=args.resume)
     elif args.mode == "train_competition":
-        train_competition(name=args.name, resume=args.resume)
+        train_competition(name=args.name, resume=args.resume, extra_timesteps=args.extra_timesteps)
     elif args.mode == "evaluate_best":
         evaluate_best(args.name)
     else:
