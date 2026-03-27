@@ -425,7 +425,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
         model.tensorboard_log = f"./logs/{name}"
         model.learn(
             total_timesteps=extra_timesteps,
-            callback=[eval_callback],
+            callback=[eval_callback, cov_callback],
             reset_num_timesteps=False,  
         )
         model.save(f"./models/{name}/final")
@@ -486,7 +486,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
             print(f"  Stage {stage_idx + 1} checkpoint saved.")
             train_env.close()
 
-        model.save(f"./models/{name}/best_model")
+        model.save(f"./models/{name}/final")
         print(f"\nCurriculum training complete: {name}")
 
     best_src = f"./models/{name}/best_model.zip"
@@ -512,9 +512,17 @@ def evaluate_best(name="best_agent"):
         ("sneaky_enemies", {"render_mode": 'human'}),
     ]
 
+    all_coverages = []
+    all_steps = []
+    labels = []
+
     # add extra maps to test_envs
     for i, m in enumerate(extra_maps):
         test_envs.append(("standard", {"render_mode": 'human', "predefined_map_list": [m]}))
+
+    all_coverages = []
+    all_steps = []
+    labels = []
 
     # loop through each test env
     for idx, (env_id, kwargs) in enumerate(test_envs):
@@ -542,11 +550,35 @@ def evaluate_best(name="best_agent"):
             )
 
             print(f"  Episode {i+1}: {outcome} | Coverage: {coverage:.1f}% | Steps: {steps}")
+            all_coverages.append(coverage)
+            all_steps.append(steps)
+            labels.append(label)
 
 
             time.sleep(1)
 
         env.close()
+
+
+            # Coverage plot
+    plt.figure()
+    plt.bar(labels, all_coverages)
+    plt.xticks(rotation=45)
+    plt.ylabel("Coverage (%)")
+    plt.title("Coverage per Episode")
+    plt.tight_layout()
+    plt.savefig("coverage_plot.png")
+
+    # Steps plot
+    plt.figure()
+    plt.bar(labels, all_steps)
+    plt.xticks(rotation=45)
+    plt.ylabel("Steps")
+    plt.title("Steps per Episode")
+    plt.tight_layout()
+    plt.savefig("steps_plot.png")
+
+    print("Plots saved: coverage_plot.png, steps_plot.png")
 
 
 # -------------------- #
@@ -556,13 +588,12 @@ if __name__ == "__main__":
     parser.add_argument("mode", choices=["train", "train_competition", "eval", "evaluate_best"], help="train, train_competition, eval, or evaluate_best")
     parser.add_argument("--name", default="experiment", help="name for this run (used for saving/loading)")
     parser.add_argument("--resume", action="store_true", help="resume training from the last checkpoint")
-    parser.add_argument("--extra_timesteps", type=int, default=3_000_000, help="extra timesteps when resuming train_competition")
     args = parser.parse_args()
 
     if args.mode == "train":
         train(args.name, resume=args.resume)
     elif args.mode == "train_competition":
-        train_competition(name=args.name, resume=args.resume, extra_timesteps=args.extra_timesteps)
+        train_competition(name=args.name, resume=args.resume)
     elif args.mode == "evaluate_best":
         evaluate_best(args.name)
     else:
