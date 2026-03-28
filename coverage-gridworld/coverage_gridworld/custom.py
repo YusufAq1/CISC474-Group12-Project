@@ -6,7 +6,7 @@ Feel free to modify the functions below and experiment with different environmen
 """
 
 OBS_MODE = "B"
-REWARD_MODE = "_reward_fn4"
+REWARD_MODE = "stealth_safe"
 GRID_SIZE = 10
 _prev_agent_pos = None
 

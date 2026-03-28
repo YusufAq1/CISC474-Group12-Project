@@ -1,5 +1,6 @@
 import random
 import time
+from coverage_gridworld.custom import OBS_MODE, REWARD_MODE
 import gymnasium
 import shutil
 import argparse
@@ -9,6 +10,8 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback
 import matplotlib.pyplot as plt
 import os
+import torch
+import numpy as np
 
 
 def human_player():
@@ -314,11 +317,7 @@ def train(name, resume=False):
 
 def evaluate(name):
 
-    # load the best model found during training
-    try:
-        model = PPO.load(f"./models/{name}/best_model")
-    except FileNotFoundError:
-        model = PPO.load(name)
+    model = PPO.load(f"./train_comp_results/{name}.zip")
 
     # Test agent on the following 5 envs 
     test_envs = [
@@ -371,22 +370,25 @@ def evaluate(name):
 
 
     # Coverage plot
+    os.makedirs("plots", exist_ok=True)
     plt.figure()
     plt.bar(labels, all_coverages)
     plt.xticks(rotation=45)
     plt.ylabel("Coverage (%)")
     plt.title("Coverage per Episode")
     plt.tight_layout()
-    plt.savefig("coverage_plot.png")
+    plt.savefig(f"plots/{OBS_MODE}_{REWARD_MODE}_coverage.png")
+
 
     # Steps plot
+    os.makedirs("plots", exist_ok=True)
     plt.figure()
     plt.bar(labels, all_steps)
     plt.xticks(rotation=45)
     plt.ylabel("Steps")
     plt.title("Steps per Episode")
     plt.tight_layout()
-    plt.savefig("steps_plot.png")
+    plt.savefig(f"plots/{OBS_MODE}_{REWARD_MODE}_steps.png")
 
     print("Plots saved: coverage_plot.png, steps_plot.png")
     
@@ -498,10 +500,7 @@ def train_competition(name="best_agent", resume=False, extra_timesteps=3_000_000
 
 def evaluate_best(name="best_agent"):
     # load the best model found during training
-    try:
-        model = PPO.load(f"./models/{name}/best_model")
-    except FileNotFoundError:
-        model = PPO.load(name)
+    model = PPO.load(f"./train_comp_results/{name}.zip")
 
     # Test agent on the following 5 envs 
     test_envs = [
@@ -560,25 +559,36 @@ def evaluate_best(name="best_agent"):
         env.close()
 
 
-            # Coverage plot
-    plt.figure()
-    plt.bar(labels, all_coverages)
-    plt.xticks(rotation=45)
+  # Coverage plot
+    os.makedirs("plots", exist_ok=True)
+
+    x = np.arange(len(labels))
+
+    plt.figure(figsize=(14, 6))
+    plt.bar(x, all_coverages, width=0.6)
+
+    plt.xticks(x, labels, rotation=45, ha='right')
     plt.ylabel("Coverage (%)")
     plt.title("Coverage per Episode")
+
     plt.tight_layout()
-    plt.savefig("coverage_plot.png")
+    plt.savefig(f"plots/{OBS_MODE}_{REWARD_MODE}_coverage.png")
+
 
     # Steps plot
-    plt.figure()
-    plt.bar(labels, all_steps)
-    plt.xticks(rotation=45)
+    os.makedirs("plots", exist_ok=True)
+
+    x = np.arange(len(labels))
+
+    plt.figure(figsize=(14, 6))
+    plt.bar(x, all_steps, width=0.6)
+
+    plt.xticks(x, labels, rotation=45, ha='right')
     plt.ylabel("Steps")
     plt.title("Steps per Episode")
-    plt.tight_layout()
-    plt.savefig("steps_plot.png")
 
-    print("Plots saved: coverage_plot.png, steps_plot.png")
+    plt.tight_layout()
+    plt.savefig(f"plots/{OBS_MODE}_{REWARD_MODE}_steps.png")
 
 
 # -------------------- #
