@@ -1,0 +1,28 @@
+{
+  "run_name": "OBS_A_FN4_seed0",
+  "obs_mode": "A",
+  "reward_mode": "_reward_fn4",
+  "reward_label": "FN4",
+  "seed": 0,
+  "stage_steps": [
+    800000,
+    800000,
+    1500000,
+    3000000
+  ],
+  "eval_freq": 25000,
+  "n_eval_episodes": 20,
+  "eval_maps": "base_5_maps",
+  "train_stage_maps": [
+    "maps[:2]",
+    "maps[:3]",
+    "maps[:4]",
+    "all_maps(16)"
+  ],
+  "created_at_utc": "2026-03-31T00:10:38.308568+00:00",
+  "completed_at_utc": "2026-03-31T00:55:06.261834+00:00",
+  "elapsed_seconds": 2667.952737092972,
+  "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_A_FN4_seed0",
+  "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_A_FN4_seed0",
+  "status": "completed"
+}

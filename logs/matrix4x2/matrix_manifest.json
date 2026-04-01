@@ -1,0 +1,256 @@
+{
+  "generated_at_utc": "2026-03-30T17:58:24.503594+00:00",
+  "seed": 0,
+  "stage_steps": [
+    800000,
+    800000,
+    1500000,
+    3000000
+  ],
+  "eval_freq": 25000,
+  "n_eval_episodes": 20,
+  "logs_root": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2",
+  "models_root": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2",
+  "runs": [
+    {
+      "run_name": "OBS_A_BALANCED_seed0",
+      "obs_mode": "A",
+      "reward_mode": "balanced",
+      "reward_label": "BALANCED",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-30T17:58:24.503817+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-30T17:58:24.512041+00:00",
+      "completed_at_utc": "2026-03-30T18:45:26.634197+00:00",
+      "elapsed_seconds": 2822.130805015564,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_A_BALANCED_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_A_BALANCED_seed0",
+      "finished_at_utc": "2026-03-30T18:45:26.634616+00:00"
+    },
+    {
+      "run_name": "OBS_B_BALANCED_seed0",
+      "obs_mode": "B",
+      "reward_mode": "balanced",
+      "reward_label": "BALANCED",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-30T18:45:26.635663+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-30T18:45:26.641629+00:00",
+      "completed_at_utc": "2026-03-30T19:41:36.215367+00:00",
+      "elapsed_seconds": 3369.580097913742,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_B_BALANCED_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_B_BALANCED_seed0",
+      "finished_at_utc": "2026-03-30T19:41:36.215756+00:00"
+    },
+    {
+      "run_name": "OBS_A_STEALTH_seed0",
+      "obs_mode": "A",
+      "reward_mode": "stealth_safe",
+      "reward_label": "STEALTH",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-30T19:41:36.216849+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-30T19:41:36.216934+00:00",
+      "completed_at_utc": "2026-03-30T21:44:56.726088+00:00",
+      "elapsed_seconds": 7400.509768247604,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_A_STEALTH_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_A_STEALTH_seed0",
+      "finished_at_utc": "2026-03-30T21:44:56.726612+00:00"
+    },
+    {
+      "run_name": "OBS_B_STEALTH_seed0",
+      "obs_mode": "B",
+      "reward_mode": "stealth_safe",
+      "reward_label": "STEALTH",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-30T21:44:56.727152+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-30T21:44:56.727209+00:00",
+      "completed_at_utc": "2026-03-30T22:39:30.970275+00:00",
+      "elapsed_seconds": 3274.2435438632965,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_B_STEALTH_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_B_STEALTH_seed0",
+      "finished_at_utc": "2026-03-30T22:39:30.970693+00:00"
+    },
+    {
+      "run_name": "OBS_A_FN3_seed0",
+      "obs_mode": "A",
+      "reward_mode": "_reward_fn3",
+      "reward_label": "FN3",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-30T22:39:30.971909+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-30T22:39:30.971942+00:00",
+      "completed_at_utc": "2026-03-30T23:20:53.410630+00:00",
+      "elapsed_seconds": 2482.438990831375,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_A_FN3_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_A_FN3_seed0",
+      "finished_at_utc": "2026-03-30T23:20:53.410896+00:00"
+    },
+    {
+      "run_name": "OBS_B_FN3_seed0",
+      "obs_mode": "B",
+      "reward_mode": "_reward_fn3",
+      "reward_label": "FN3",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-30T23:20:53.411409+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-30T23:20:53.411446+00:00",
+      "completed_at_utc": "2026-03-31T00:10:38.307881+00:00",
+      "elapsed_seconds": 2984.8967730998993,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_B_FN3_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_B_FN3_seed0",
+      "finished_at_utc": "2026-03-31T00:10:38.308178+00:00"
+    },
+    {
+      "run_name": "OBS_A_FN4_seed0",
+      "obs_mode": "A",
+      "reward_mode": "_reward_fn4",
+      "reward_label": "FN4",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-31T00:10:38.308527+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-31T00:10:38.308568+00:00",
+      "completed_at_utc": "2026-03-31T00:55:06.261834+00:00",
+      "elapsed_seconds": 2667.9537119865417,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_A_FN4_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_A_FN4_seed0",
+      "finished_at_utc": "2026-03-31T00:55:06.262235+00:00"
+    },
+    {
+      "run_name": "OBS_B_FN4_seed0",
+      "obs_mode": "B",
+      "reward_mode": "_reward_fn4",
+      "reward_label": "FN4",
+      "seed": 0,
+      "status": "completed",
+      "started_at_utc": "2026-03-31T00:55:06.262907+00:00",
+      "stage_steps": [
+        800000,
+        800000,
+        1500000,
+        3000000
+      ],
+      "eval_freq": 25000,
+      "n_eval_episodes": 20,
+      "eval_maps": "base_5_maps",
+      "train_stage_maps": [
+        "maps[:2]",
+        "maps[:3]",
+        "maps[:4]",
+        "all_maps(16)"
+      ],
+      "created_at_utc": "2026-03-31T00:55:06.262940+00:00",
+      "completed_at_utc": "2026-03-31T01:45:38.926281+00:00",
+      "elapsed_seconds": 3032.663685321808,
+      "log_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/logs/matrix4x2/OBS_B_FN4_seed0",
+      "model_dir": "/Users/daniel/Development/Programming/Queens/CISC_474/CISC474-Group12-Project/models/matrix4x2/OBS_B_FN4_seed0",
+      "finished_at_utc": "2026-03-31T01:45:38.926585+00:00"
+    }
+  ]
+}
